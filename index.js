@@ -520,7 +520,7 @@ async function moduleWorker() {
                 return;
             }
 
-            const newExpression = getNewExpression();
+            const newExpression = getNewExpression(currentCharacterBGM);
 
             // 1.3) Same character but different expression
             if (currentExpressionBGM !== newExpression) {
@@ -613,8 +613,7 @@ async function moduleWorker() {
                 return;
             }
 
-            /*
-            const newExpression = getNewExpression();
+            const newExpression = getNewExpression(currentCharacterBGM);
 
             // 1.3) Same character but different expression
             if (currentExpressionBGM !== newExpression) {
@@ -625,14 +624,14 @@ async function moduleWorker() {
                     return;
                 }
 
-                cooldownBGM = BGM_UPDATE_COOLDOWN;
+                cooldownBGM = extension_settings.audio.bgm_cooldown * 1000;
                 currentExpressionBGM = newExpression;
                 console.debug(DEBUG_PREFIX,"Updated current character expression to",currentExpressionBGM);
                 updateBGM();
                 return;
             }
 
-            return;*/
+            return;
 
         }
 
@@ -664,7 +663,7 @@ async function loadCharacterBGM(newCharacter) {
     fillBGMSelect();
 }
 
-function getNewExpression() {
+function getNewExpression(character) {
     let newExpression;
 
     // HACK: use sprite file name as expression detection
@@ -673,7 +672,7 @@ function getNewExpression() {
         return FALLBACK_EXPRESSION;
     }
 
-    const spriteFile = $('#expression-image').attr('src');
+    const spriteFile = $('#expression-image[src*="/' + character + '/"]').attr('src');
     newExpression = spriteFile.substring(spriteFile.lastIndexOf('/') + 1).replace(/\.[^/.]+$/, '');
     //
 
