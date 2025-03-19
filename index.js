@@ -672,9 +672,13 @@ function getNewExpression(character) {
         return FALLBACK_EXPRESSION;
     }
 
-    const spriteFile = $('#expression-image[src*="/' + character + '/"]').attr('src');
+    const spriteFile = $(`#expression-image[src*="/${character}/"]`).attr('src');
+    if (!spriteFile) {
+        console.info(DEBUG_PREFIX, 'Warning: no image found for character', character, 'in', SPRITE_DOM_ID);
+        return FALLBACK_EXPRESSION;
+    }
+
     newExpression = spriteFile.substring(spriteFile.lastIndexOf('/') + 1).replace(/\.[^/.]+$/, '');
-    //
 
     // No sprite to detect expression
     if (newExpression == '') {
