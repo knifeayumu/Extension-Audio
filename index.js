@@ -1034,24 +1034,28 @@ jQuery(async () => {
     const gestureCatcher = $('<div id="gesture-catcher" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;opacity:0;cursor:pointer;"></div>');
     $('body').append(gestureCatcher);
 
-    gestureCatcher.on('click keydown', async () => {
+    gestureCatcher.on('click keydown', async (e) => {
         try {
             const bgm = $('#audio_bgm')[0];
             const ambient = $('#audio_ambient')[0];
 
-            // Attempt silent autoplay first
             await bgm.play().catch(() => { });
             await ambient.play().catch(() => { });
 
-            // Unmute and fade in
             $('#audio_bgm').prop('muted', false);
             $('#audio_ambient').prop('muted', false);
 
             $('#audio_bgm').animate({ volume: extension_settings.audio.bgm_volume * 0.01 }, 1000);
             $('#audio_ambient').animate({ volume: extension_settings.audio.ambient_volume * 0.01 }, 1000);
 
-            // Remove the catcher
             $('#gesture-catcher').remove();
+
+            // Re-dispatch the original event to allow normal UI behavior
+            const event = e.originalEvent;
+            const newEvent = new event.constructor(event.type, event);
+            const target = document.elementFromPoint(event.clientX, event.clientY);
+            if (target) target.dispatchEvent(newEvent);
+
             console.debug(DEBUG_PREFIX, 'User gesture captured, audio autoplay enabled.');
         } catch (err) {
             console.warn(DEBUG_PREFIX, 'Failed to unlock audio playback:', err);
