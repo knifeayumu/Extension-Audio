@@ -87,7 +87,6 @@ let lastBgmPath = '';
 let isFading = false;
 
 
-
 //#############################//
 //  Extension UI and Settings  //
 //#############################//
@@ -143,13 +142,13 @@ function loadSettings() {
     if (extension_settings.audio.bgm_locked) {
         //$("#audio_bgm_lock_icon").removeClass("fa-lock-open");
         //$("#audio_bgm_lock_icon").addClass("fa-lock");
-        $('#audio_bgm').attr('loop', true);
+        $('#audio_bgm').prop('loop', true);
         $('#audio_bgm_lock').addClass('redOverlayGlow');
     }
     else {
         //$("#audio_bgm_lock_icon").removeClass("fa-lock");
         //$("#audio_bgm_lock_icon").addClass("fa-lock-open");
-        $('#audio_bgm').attr('loop', false);
+        $('#audio_bgm').prop('loop', false);
         $('#audio_bgm_lock').removeClass('redOverlayGlow');
     }
 
@@ -195,14 +194,16 @@ function loadSettings() {
 
 async function onEnabledClick() {
     extension_settings.audio.enabled = $('#audio_enabled').is(':checked');
+    const bgm = /** @type {JQuery<HTMLAudioElement>} */ ($('#audio_bgm'));
+    const ambient = /** @type {JQuery<HTMLAudioElement>} */ ($('#audio_ambient'));
     if (extension_settings.audio.enabled) {
-        if ($('#audio_bgm').attr('src') != '')
-            $('#audio_bgm')[0].play();
-        if ($('#audio_ambient').attr('src') != '')
-            $('#audio_ambient')[0].play();
+        if (bgm.attr('src') != '')
+            bgm[0].play();
+        if (ambient.attr('src') != '')
+            ambient[0].play();
     } else {
-        $('#audio_bgm')[0].pause();
-        $('#audio_ambient')[0].pause();
+        bgm[0].pause();
+        ambient[0].pause();
     }
     saveSettingsDebounced();
 }
@@ -225,10 +226,10 @@ async function onBGMLockClick() {
     extension_settings.audio.bgm_locked = !extension_settings.audio.bgm_locked;
     if (extension_settings.audio.bgm_locked) {
         extension_settings.audio.bgm_selected = $('#audio_bgm_select').val();
-        $('#audio_bgm').attr('loop', true);
+        $('#audio_bgm').prop('loop', true);
     }
     else {
-        $('#audio_bgm').attr('loop', false);
+        $('#audio_bgm').prop('loop', false);
     }
     //$("#audio_bgm_lock_icon").toggleClass("fa-lock");
     //$("#audio_bgm_lock_icon").toggleClass("fa-lock-open");
@@ -237,13 +238,13 @@ async function onBGMLockClick() {
 }
 
 async function onBGMRandomClick() {
-    var select = document.getElementById('audio_bgm_select');
-    var items = select.getElementsByTagName('option');
+    const select = /** @type {HTMLSelectElement} */ (document.getElementById('audio_bgm_select'));
+    const items = select.getElementsByTagName('option');
 
     if (items.length < 2)
         return;
 
-    var index;
+    let index;
     do {
         index = Math.floor(Math.random() * items.length);
     } while (index == select.selectedIndex);
@@ -379,7 +380,7 @@ function fillBGMSelect() {
         .remove();
 
     for (const file of fallback_BGMS) {
-        $('#audio_bgm_select').append(new Option('asset: ' + file.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, ''), file));
+        $('#audio_bgm_select').append(new Option('asset: ' + file.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, ''), file));
         if (file === extension_settings.audio.bgm_selected) {
             $('#audio_bgm_select').val(extension_settings.audio.bgm_selected);
             found_last_selected_bgm = true;
@@ -390,7 +391,7 @@ function fillBGMSelect() {
     for (const char in characterMusics)
         for (const e in characterMusics[char])
             for (const file of characterMusics[char][e]) {
-                $('#audio_bgm_select').append(new Option(char + ': ' + file.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, ''), file));
+                $('#audio_bgm_select').append(new Option(char + ': ' + file.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, ''), file));
                 if (file === extension_settings.audio.bgm_selected) {
                     $('#audio_bgm_select').val(extension_settings.audio.bgm_selected);
                     found_last_selected_bgm = true;
@@ -440,7 +441,7 @@ async function moduleWorker() {
             if (extension_settings.audio.ambient_selected !== null) {
                 let ambient_label = extension_settings.audio.ambient_selected;
                 if (ambient_label.includes('assets'))
-                    ambient_label = 'asset: ' + ambient_label.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, '');
+                    ambient_label = 'asset: ' + ambient_label.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
                 else {
                     ambient_label = ambient_label.substring('/characters/'.length);
                     ambient_label = ambient_label.substring(0, ambient_label.indexOf('/')) + ': ' + ambient_label.substring(ambient_label.indexOf('/') + '/bgm/'.length);
@@ -451,7 +452,7 @@ async function moduleWorker() {
 
             for (const file of ambients) {
                 if (file !== extension_settings.audio.ambient_selected)
-                    $('#audio_ambient_select').append(new Option('asset: ' + file.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, ''), file));
+                    $('#audio_ambient_select').append(new Option('asset: ' + file.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, ''), file));
             }
         }
 
@@ -630,13 +631,13 @@ async function moduleWorker() {
 
                 // Check cooldown
                 if (cooldownBGM > 0) {
-                    console.debug(DEBUG_PREFIX, "BGM switch on cooldown:", cooldownBGM);
+                    console.debug(DEBUG_PREFIX, 'BGM switch on cooldown:', cooldownBGM);
                     return;
                 }
 
                 cooldownBGM = extension_settings.audio.bgm_cooldown * 1000;
                 currentExpressionBGM = newExpression;
-                console.debug(DEBUG_PREFIX, "Updated current character expression to", currentExpressionBGM);
+                console.debug(DEBUG_PREFIX, 'Updated current character expression to', currentExpressionBGM);
                 updateBGM();
                 return;
             }
@@ -732,7 +733,7 @@ async function _updateBGMInternal(isUserInput = false, newChat = false) {
                 if (audio_files.length === 0) return;
             }
         } else {
-            audio_files = $('#audio_bgm_select option').map((_, el) => el.value).get();
+            audio_files = $('#audio_bgm_select option').map((_, /** @type {HTMLOptionElement} */ el) => el.value).get();
         }
 
         audio_file_path = audio_files[Math.floor(Math.random() * audio_files.length)];
@@ -745,7 +746,7 @@ async function _updateBGMInternal(isUserInput = false, newChat = false) {
         lastBgmPath = audio_file_path;
         $('#audio_bgm_select').val(audio_file_path);
 
-        const audio = $('#audio_bgm');
+        const audio = /** @type {JQuery<HTMLAudioElement>} */ ($('#audio_bgm'));
         const el = audio[0];
 
         if (el.src === audio_file_path && !el.paused) {
@@ -907,7 +908,7 @@ async function updateAmbient(isUserInput = false) {
 
     if (audio_file_path === null) {
         console.debug(DEBUG_PREFIX, 'No bgm file found for background', currentBackground);
-        const audio = $('#audio_ambient');
+        const audio = /** @type {JQuery<HTMLAudioElement>} */ ($('#audio_ambient'));
         audio.attr('src', '');
         audio[0].pause();
         return;
@@ -922,7 +923,7 @@ async function updateAmbient(isUserInput = false) {
     if (isUserInput)
         fade_time = 0;
 
-    const audio = $('#audio_ambient');
+    const audio = /** @type {JQuery<HTMLAudioElement>} */ ($('#audio_ambient'));
 
     if (audio.attr('src') == audio_file_path) {
         console.log(DEBUG_PREFIX, 'Already playing, ignored');
@@ -976,7 +977,7 @@ jQuery(async () => {
     //$("#audio_dynamic_ambient_enabled").on("click", onDynamicAmbientEnabledClick);
 
     //$("#audio_bgm").attr("loop", false);
-    $('#audio_ambient').attr('loop', true);
+    $('#audio_ambient').prop('loop', true);
 
     $('#audio_bgm').hide();
     $('#audio_bgm_lock').on('click', onBGMLockClick);
@@ -1031,13 +1032,13 @@ jQuery(async () => {
     });
 
     //audio will autoplay on first UI click
-    const gestureCatcher = $('<div id="gesture-catcher" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;opacity:0;cursor:pointer;"></div>');
+    const gestureCatcher = $('<div id="gesture-catcher"></div>');
     $('body').append(gestureCatcher);
 
     gestureCatcher.on('click keydown', async (e) => {
         try {
-            const bgm = $('#audio_bgm')[0];
-            const ambient = $('#audio_ambient')[0];
+            const bgm = /** @type {HTMLAudioElement} */ ($('#audio_bgm')[0]);
+            const ambient = /** @type {HTMLAudioElement} */ ($('#audio_ambient')[0]);
 
             await bgm.play().catch(() => { });
             await ambient.play().catch(() => { });
@@ -1051,8 +1052,8 @@ jQuery(async () => {
             $('#gesture-catcher').remove();
 
             // Re-dispatch the original event to allow normal UI behavior
-            const event = e.originalEvent;
-            const newEvent = new event.constructor(event.type, event);
+            const event = /** @type {PointerEvent} */ (e.originalEvent);
+            const newEvent = new PointerEvent(event.type, event);
             const target = document.elementFromPoint(event.clientX, event.clientY);
             if (target) target.dispatchEvent(newEvent);
 
@@ -1106,11 +1107,11 @@ async function setBGMSlashCommand(_, file) {
 
     // Fuzzy search for sprite
 
-    let selectElement = document.querySelectorAll('[id=audio_bgm_select]');
-    let optionValues = [...selectElement[0].options].map(o => o.value);
+    let selectElement = /** @type {HTMLSelectElement} */ (document.querySelector('[id="audio_bgm_select"]'));
+    let optionValues = [...selectElement.options].map(o => o.value);
     //console.debug(DEBUG_PREFIX,"DEBUG:",optionValues);
 
-    const fuse = new Fuse(optionValues);
+    const fuse = new SillyTavern.libs.Fuse(optionValues);
     const results = fuse.search(file);
     const fileItem = results[0]?.item;
 
@@ -1133,11 +1134,11 @@ async function setAmbientSlashCommand(_, file) {
 
     file = file.trim().toLowerCase();
 
-    let selectElement = document.querySelectorAll('[id=audio_ambient_select]');
-    let optionValues = [...selectElement[0].options].map(o => o.value);
+    const selectElement = /** @type {HTMLSelectElement} */ (document.querySelector('[id="audio_ambient_select"]'));
+    const optionValues = [...selectElement.options].map(o => o.value);
     //console.debug(DEBUG_PREFIX,"DEBUG:",optionValues);
 
-    const fuse = new Fuse(optionValues);
+    const fuse = new SillyTavern.libs.Fuse(optionValues);
     const results = fuse.search(file);
     const fileItem = results[0]?.item;
 
