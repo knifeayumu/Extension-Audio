@@ -680,13 +680,13 @@ function getNewExpression(character) {
 
     // HACK: use sprite file name as expression detection
     if (!$(SPRITE_DOM_ID).length) {
-        console.info(DEBUG_PREFIX, 'ERROR: expression sprite does not exist, cannot extract expression from ', SPRITE_DOM_ID);
+        console.debug(DEBUG_PREFIX, 'ERROR: expression sprite does not exist, cannot extract expression from ', SPRITE_DOM_ID);
         return FALLBACK_EXPRESSION;
     }
 
     const spriteFile = $(`#expression-image[src*="/${character}/"]`).attr('src');
     if (!spriteFile) {
-        console.info(DEBUG_PREFIX, 'Warning: no image found for character', character, 'in', SPRITE_DOM_ID);
+        console.debug(DEBUG_PREFIX, 'Warning: no image found for character', character, 'in', SPRITE_DOM_ID);
         return FALLBACK_EXPRESSION;
     }
 
@@ -699,7 +699,7 @@ function getNewExpression(character) {
     }
 
     if (!DEFAULT_EXPRESSIONS.includes(newExpression)) {
-        console.info(DEBUG_PREFIX, 'Warning:', newExpression, ' is not a handled expression, expected one of', FALLBACK_EXPRESSION);
+        console.debug(DEBUG_PREFIX, 'Warning:', newExpression, ' is not a handled expression, expected one of', FALLBACK_EXPRESSION);
         return FALLBACK_EXPRESSION;
     }
 
