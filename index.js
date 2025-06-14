@@ -81,6 +81,13 @@ let cooldownBGM = 0;
 
 let bgmEnded = true;
 
+
+let bgmUpdateTimeout = null;
+let lastBgmPath = '';
+let isFading = false;
+
+
+
 //#############################//
 //  Extension UI and Settings  //
 //#############################//
@@ -330,9 +337,9 @@ async function getAssetsList(type) {
         console.debug(DEBUG_PREFIX, 'Found assets:', assets);
 
         const output = assets[type];
-        for(const i in output) {
-            output[i] = output[i].replaceAll('\\','/');
-            console.debug(DEBUG_PREFIX,'DEBUG',output[i]);
+        for (const i in output) {
+            output[i] = output[i].replaceAll('\\', '/');
+            console.debug(DEBUG_PREFIX, 'DEBUG', output[i]);
         }
 
         return output;
@@ -520,7 +527,9 @@ async function moduleWorker() {
                 return;
             }
 
-            const newExpression = getNewExpression(currentCharacterBGM);
+
+            //const newExpression = getNewExpression(currentCharacterBGM);
+            const newExpression = extension_settings.audio.dynamic_bgm_enabled ? getNewExpression(currentCharacterBGM) : FALLBACK_EXPRESSION;
 
             // 1.3) Same character but different expression
             if (currentExpressionBGM !== newExpression) {
@@ -613,20 +622,21 @@ async function moduleWorker() {
                 return;
             }
 
-            const newExpression = getNewExpression(currentCharacterBGM);
+            //dont look for expression bgm when the options isn't even enabled.
+            const newExpression = $(SPRITE_DOM_ID).length > 0 ? getNewExpression(currentCharacterBGM) : FALLBACK_EXPRESSION;
 
             // 1.3) Same character but different expression
             if (currentExpressionBGM !== newExpression) {
 
                 // Check cooldown
                 if (cooldownBGM > 0) {
-                    console.debug(DEBUG_PREFIX,"BGM switch on cooldown:",cooldownBGM);
+                    console.debug(DEBUG_PREFIX, "BGM switch on cooldown:", cooldownBGM);
                     return;
                 }
 
                 cooldownBGM = extension_settings.audio.bgm_cooldown * 1000;
                 currentExpressionBGM = newExpression;
-                console.debug(DEBUG_PREFIX,"Updated current character expression to",currentExpressionBGM);
+                console.debug(DEBUG_PREFIX, "Updated current character expression to", currentExpressionBGM);
                 updateBGM();
                 return;
             }
@@ -668,7 +678,7 @@ function getNewExpression(character) {
 
     // HACK: use sprite file name as expression detection
     if (!$(SPRITE_DOM_ID).length) {
-        console.error(DEBUG_PREFIX, 'ERROR: expression sprite does not exist, cannot extract expression from ', SPRITE_DOM_ID);
+        console.info(DEBUG_PREFIX, 'ERROR: expression sprite does not exist, cannot extract expression from ', SPRITE_DOM_ID);
         return FALLBACK_EXPRESSION;
     }
 
@@ -694,6 +704,98 @@ function getNewExpression(character) {
     return newExpression;
 }
 
+//debounced to avoid Chromium choking
+async function updateBGM(isUserInput = false, newChat = false) {
+    if (bgmUpdateTimeout) clearTimeout(bgmUpdateTimeout);
+    bgmUpdateTimeout = setTimeout(() => _updateBGMInternal(isUserInput, newChat), 250);
+}
+
+async function _updateBGMInternal(isUserInput = false, newChat = false) {
+    if (!isUserInput && !extension_settings.audio.dynamic_bgm_enabled && $('#audio_bgm').attr('src') !== '' && !bgmEnded && !newChat) {
+        console.debug(DEBUG_PREFIX, 'BGM already playing and dynamic switch disabled, no update done');
+        return;
+    }
+
+    let audio_file_path = '';
+    if (isUserInput || (extension_settings.audio.bgm_locked && extension_settings.audio.bgm_selected !== null)) {
+        audio_file_path = extension_settings.audio.bgm_selected;
+    } else {
+        let audio_files = null;
+
+        if (extension_settings.audio.dynamic_bgm_enabled) {
+            extension_settings.audio.bgm_selected = null;
+            saveSettingsDebounced();
+            audio_files = characterMusics[currentCharacterBGM]?.[currentExpressionBGM] || [];
+
+            if (audio_files.length === 0) {
+                audio_files = characterMusics[currentCharacterBGM]?.[FALLBACK_EXPRESSION] || fallback_BGMS || [];
+                if (audio_files.length === 0) return;
+            }
+        } else {
+            audio_files = $('#audio_bgm_select option').map((_, el) => el.value).get();
+        }
+
+        audio_file_path = audio_files[Math.floor(Math.random() * audio_files.length)];
+    }
+
+    if (!audio_file_path || audio_file_path === lastBgmPath) return;
+    console.debug(DEBUG_PREFIX, 'Chosen audio path:', audio_file_path);
+
+    try {
+        lastBgmPath = audio_file_path;
+        $('#audio_bgm_select').val(audio_file_path);
+
+        const audio = $('#audio_bgm');
+        const el = audio[0];
+
+        if (el.src === audio_file_path && !el.paused) {
+            console.debug(DEBUG_PREFIX, 'Already playing, skipping BGM switch');
+            return;
+        }
+
+        const newVolume = extension_settings.audio.bgm_volume * 0.01;
+        const fadeTime = isUserInput || extension_settings.audio.bgm_locked ? 0 : 2000;
+
+        if (!isFading && fadeTime > 0) {
+            isFading = true;
+            audio.stop(true).animate({ volume: 0.0 }, fadeTime, async () => {
+                audio.attr('src', audio_file_path);
+                el.load();
+                try {
+                    await new Promise((resolve, reject) => {
+                        el.onloadeddata = resolve;
+                        el.onerror = reject;
+                    });
+                    await el.play();
+                    audio.animate({ volume: newVolume }, fadeTime, () => isFading = false);
+                } catch (err) {
+                    console.warn(DEBUG_PREFIX, 'Failed to load/play audio', err);
+                    isFading = false;
+                }
+            });
+        } else {
+            audio.attr('src', audio_file_path);
+            el.load();
+            try {
+                await new Promise((resolve, reject) => {
+                    el.onloadeddata = resolve;
+                    el.onerror = reject;
+                });
+                await el.play();
+            } catch (err) {
+                console.warn(DEBUG_PREFIX, 'Failed to load/play audio (non-fade)', err);
+            }
+            audio.prop('volume', newVolume);
+        }
+
+    } catch (err) {
+        console.warn(DEBUG_PREFIX, 'Unhandled error in _updateBGMInternal()', err);
+        throw err;
+    }
+}
+
+
+/*
 async function updateBGM(isUserInput = false, newChat = false) {
     if (!isUserInput && !extension_settings.audio.dynamic_bgm_enabled && $('#audio_bgm').attr('src') != '' && !bgmEnded && !newChat) {
         console.debug(DEBUG_PREFIX, 'BGM already playing and dynamic switch disabled, no update done');
@@ -779,7 +881,7 @@ async function updateBGM(isUserInput = false, newChat = false) {
     } catch (error) {
         console.log(DEBUG_PREFIX, 'Error while trying to fetch', audio_file_path, ':', error);
     }
-}
+}*/
 
 async function updateAmbient(isUserInput = false) {
     let audio_file_path = null;
@@ -925,6 +1027,34 @@ jQuery(async () => {
         if (!extension_settings.audio.bgm_locked) {
             bgmEnded = true;
             updateBGM();
+        }
+    });
+
+    //audio will autoplay on first UI click
+    const gestureCatcher = $('<div id="gesture-catcher" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;opacity:0;cursor:pointer;"></div>');
+    $('body').append(gestureCatcher);
+
+    gestureCatcher.on('click keydown', async () => {
+        try {
+            const bgm = $('#audio_bgm')[0];
+            const ambient = $('#audio_ambient')[0];
+
+            // Attempt silent autoplay first
+            await bgm.play().catch(() => { });
+            await ambient.play().catch(() => { });
+
+            // Unmute and fade in
+            $('#audio_bgm').prop('muted', false);
+            $('#audio_ambient').prop('muted', false);
+
+            $('#audio_bgm').animate({ volume: extension_settings.audio.bgm_volume * 0.01 }, 1000);
+            $('#audio_ambient').animate({ volume: extension_settings.audio.ambient_volume * 0.01 }, 1000);
+
+            // Remove the catcher
+            $('#gesture-catcher').remove();
+            console.debug(DEBUG_PREFIX, 'User gesture captured, audio autoplay enabled.');
+        } catch (err) {
+            console.warn(DEBUG_PREFIX, 'Failed to unlock audio playback:', err);
         }
     });
 
