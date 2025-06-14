@@ -20,6 +20,7 @@ import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { SlashCommandArgument } from '../../../slash-commands/SlashCommandArgument.js';
 import { SlashCommandEnumValue, enumTypes } from '../../../slash-commands/SlashCommandEnumValue.js';
 import { enumIcons } from '../../../slash-commands/SlashCommandCommonEnumsProvider.js';
+import { isMobile } from '../../../RossAscends-mods.js';
 export { MODULE_NAME };
 
 const extensionName = 'Extension-Audio';
@@ -1033,7 +1034,7 @@ jQuery(async () => {
 
     //audio will autoplay on first UI click
     const gestureCatcher = $('<div id="gesture-catcher"></div>');
-    $('body').append(gestureCatcher);
+    isMobile() && $('body').append(gestureCatcher);
 
     gestureCatcher.on('click keydown', async (e) => {
         try {
