@@ -623,7 +623,7 @@ async function moduleWorker() {
             }
 
             //dont look for expression bgm when the options isn't even enabled.
-            const newExpression = $(SPRITE_DOM_ID).length > 0 ? getNewExpression(currentCharacterBGM) : FALLBACK_EXPRESSION;
+            const newExpression = extension_settings.audio.dynamic_bgm_enabled ? getNewExpression(currentCharacterBGM) : FALLBACK_EXPRESSION;
 
             // 1.3) Same character but different expression
             if (currentExpressionBGM !== newExpression) {
