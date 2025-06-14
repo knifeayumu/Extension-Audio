@@ -6,27 +6,34 @@
 #audio_settings .flex.column {
     flex-direction: column;
 }
+
 #audio_settings .flex.column-reverse {
     flex-direction: column-reverse;
 }
+
 #audio_settings .flex.row {
     flex-direction: row;
 }
+
 #audio_settings .flex.row-reverse {
     flex-direction: row-reverse;
 }
+
 /* align-items: center;
 justify-content: flex-end;
 gap: 12px; */
 #audio_settings .flex.align-center {
     align-items: center;
 }
+
 #audio_settings .flex.justify-center {
     justify-content: center;
 }
+
 #audio_settings .flex.justify-start {
     justify-content: flex-start;
 }
+
 #audio_settings .flex.justify-end {
     justify-content: flex-end;
 }
@@ -79,4 +86,15 @@ gap: 12px; */
 #audio_settings .audio-container>.playlist>select {
     height: 100%;
     margin: 0 !important;
+}
+
+#gesture-catcher {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    opacity: 0;
+    cursor: pointer;
 }
